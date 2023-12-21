@@ -48,25 +48,25 @@ def makeDirs(structure, root):
     for dir in dirs:
         makeDirs(dirs[dir], f"{root}/{dir}")
 
-def recursiveMirror(structure, root, connection: socket.socket, chunkSize):
+def recursiveMirror(structure, root, connection: socket.socket, chunkSize, sendInitialInfo = True):
         print("syncing")
         dirs, files = structure
         makeDirs(structure, root)
-        
-        diffLength = "{:<128}".format(len(diff := pickle.dumps(structure)))
-        
-        connection.sendall(diffLength.encode())
-        connection.sendall(diff)
-        
-        if chunkSize == None:
-            try:
-                chunkSize = int(connection.recv(128))
-            except:
-                chunkSize = 10
+        if sendInitialInfo:
+            diffLength = "{:<128}".format(len(diff := pickle.dumps(structure)))
+            
+            connection.sendall(diffLength.encode())
+            connection.sendall(diff)
+            
+            if chunkSize == None:
+                try:
+                    chunkSize = int(connection.recv(128))
+                except:
+                    chunkSize = 10
         
         for file in files:
             filePath = f"{root}/{file}"
-            remainingBytes = int(connection.recv(128).decode())
+            remainingBytes = int(connection.recv(128, socket.MSG_WAITALL).decode())
             with open(filePath, "wb") as outFile:
                 pbar = tqdm.tqdm(total=remainingBytes)
                 while remainingBytes > 0:
@@ -81,9 +81,10 @@ def recursiveMirror(structure, root, connection: socket.socket, chunkSize):
             print(connection.recv(3, socket.MSG_WAITALL).decode(), "wrote ", file)
                 
         for dir in dirs:
-            recursiveMirror(dirs[dir], f"{root}/{dir}", connection, chunkSize)
-def sync(root, chunkSize = None):
-    while (diffInfo := getDiff(getStructure(root), masterAddress='192.168.50.183')) != None:
+            recursiveMirror(dirs[dir], f"{root}/{dir}", connection, chunkSize, sendInitialInfo=False)
+def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
+    print(f"Attempting sync on {masterAddress}")
+    while (diffInfo := getDiff(getStructure(root), masterAddress=masterAddress)) != None:
         diff, addr = diffInfo
         print(f"peer address {addr}")
         with socket.create_connection((addr, port := getConnectionPort(addr))) as connection:
@@ -97,7 +98,10 @@ def sync(root, chunkSize = None):
         currentStructure = getStructure(root)
             
 
+with open("./global.cfg", 'rb') as file:
+    globalConfig = pickle.load(file)
+
 for i in range(1):
-    threads = [Thread(target=lambda x: sync(f"./test/client"), args=(i,)) for i in range(1)]
+    threads = [Thread(target=lambda x: sync(f"./test/client", masterAddress=globalConfig["LANAddress"]), args=(i,)) for i in range(1)]
     [i.start() for i in threads]
     [i.join() for i in threads]

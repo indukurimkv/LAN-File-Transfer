@@ -4,6 +4,9 @@ import time
 import pickle
 from Loader import getBytes
 
+def Print(*args):
+    print("[Server]", *args)
+
 class Listener(Thread):
     def __init__(self, port=0, directory = "./master") -> int:
         super().__init__()
@@ -22,17 +25,15 @@ class Listener(Thread):
             conn, self.clientAddr = self.sock.accept()
             diffLength = int(conn.recv(128).decode())
             diff = pickle.loads(conn.recv(diffLength))
-            print("Syncing the following with {}".format(self.clientAddr))
-            print(diff)
+            Print("Syncing the following with {}".format(self.clientAddr))
+            Print(diff)
             
             
             conn.sendall("{:<128}".format(4096).encode())
             for byteGroup in getBytes(diff, "./test/master"):
                 conn.sendall(byteGroup)
             
-            time.sleep(1)
-            conn.sendall(msg := conn.recv(16, socket.MSG_WAITALL))
-            print(f"recieved {msg.decode()} from {self.clientAddr}")
+            conn.sendall(conn.recv(16, socket.MSG_WAITALL))
             
                 
     def run(self) -> None:
@@ -40,30 +41,31 @@ class Listener(Thread):
             self.sendData()
             self.close()
         except Exception as e:
-            print(e) 
+            Print(e) 
             self.close()    
       
     def close(self):
-        print("closed connection with {}".format(self.clientAddr))
+        Print("closed connection with {}".format(self.clientAddr))
         if self.connTracker != None:
             self.connTracker.remove(self.PORT)      
 
+
     def start(self) -> None:
-        print(self.connTracker)
+        Print(self.connTracker)
         if self.connTracker != None:
             self.connTracker.append(self.PORT)
         super().start()
 
 def runServer():
     connections = []
-
+    Print('Running on 0.0.0.0')
     with socket.create_server(('', 50000)) as s:
         s.listen()
         while True:
             if(len(connections) >=30): continue
             conn, addr = s.accept()
             with conn:
-                print('connected with', addr)
+                Print('connected with', addr)
                 listener = Listener()
                 listener.subscribeToConnectionUpdates(connections)
                 listener.start()

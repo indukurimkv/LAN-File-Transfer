@@ -3,6 +3,9 @@ from os.path import join
 import time
 from Directories import diff, getStructure
 
+def Print(*args):
+    print("[Loader]", *args)
+
 def getBytes(structure, root, chunkSize = 4096):
     dirs, files = structure
     for file in files:
@@ -10,7 +13,7 @@ def getBytes(structure, root, chunkSize = 4096):
         with open(join(root, file), 'rb') as file:
             remainingBytes = os.stat(filePath).st_size
             yield '{:<128}'.format(remainingBytes).encode()
-            print(f"sending {remainingBytes} bytes")
+            Print(f"sending {remainingBytes} bytes")
             while remainingBytes > 0:
                 yield file.read(chunkSize)
                 remainingBytes -= chunkSize
@@ -24,9 +27,9 @@ if __name__ == "__main__":
     clientDir = "./test/client"
 
     structure = diff(master:=getStructure(masterDir), client:=getStructure(clientDir))
-    print(master)
-    print(client)
-    print(structure)
+    Print(master)
+    Print(client)
+    Print(structure)
 
 
 
