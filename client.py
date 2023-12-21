@@ -91,14 +91,11 @@ def sync(root, chunkSize = None):
         with socket.create_connection((addr, port := getConnectionPort(addr))) as connection:
             print(f"peer info: {addr}:{port}")        
             recursiveMirror(diff, root, connection, chunkSize)
-            # connection.sendall("{:<128}".format("Done-Closing").encode)
-            # if connection.recv(128) != "Done-Closing":
-            #     print("Error closing connection properly. Some file transfers may be incomplete.")
-        
+
         currentStructure = getStructure(root)
             
 
 for i in range(1):
-    threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}"), args=(i,)) for i in range(1)]
+    threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}"), args=(i,)) for i in range(2)]
     [i.start() for i in threads]
     [i.join() for i in threads]
