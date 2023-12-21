@@ -84,13 +84,16 @@ def recursiveMirror(structure, root, connection: socket.socket, chunkSize):
                 
         for dir in dirs:
             recursiveMirror(dirs[dir], f"{root}/{dir}", connection, chunkSize)
-
 def sync(root, chunkSize = None):
     while (diffInfo := getDiff(getStructure(root))) != None:
         diff, addr = diffInfo
         with socket.create_connection((addr, port := getConnectionPort(addr))) as connection:
             print(f"peer info: {addr}:{port}")        
             recursiveMirror(diff, root, connection, chunkSize)
+            
+            connection.sendall('{:<16}'.format("Clean exit").encode())
+            closeConfirm = connection.recv(16).decode()
+            print(f"{closeConfirm} from {addr}:{port}")
 
         currentStructure = getStructure(root)
             

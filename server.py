@@ -30,6 +30,8 @@ class Listener(Thread):
             for byteGroup in getBytes(diff, "./test/master"):
                 conn.sendall(byteGroup)
             
+            conn.sendall(conn.recv(16))
+            
                 
     def run(self) -> None:
         try: 
