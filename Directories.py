@@ -3,12 +3,15 @@ from os.path import isfile, isdir, join
 
 def getStructure(path):
     out = {},[]
-    for item in listdir(path):
-        if isdir(join(path, item)):
-            out[0][item] = getStructure(join(path, item))
-            continue
-        out[1].append(item)
-    return out
+    try:
+        for item in listdir(path):
+            if isdir(join(path, item)):
+                out[0][item] = getStructure(join(path, item))
+                continue
+            out[1].append(item)
+        return out
+    except FileNotFoundError:
+        return {}, []
 def diff(server, client):
     out = {}, []
     if server == out: return out

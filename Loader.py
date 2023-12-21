@@ -1,6 +1,6 @@
 import os
 from os.path import join
-
+import time
 from Directories import diff, getStructure
 
 def getBytes(structure, root, chunkSize = 4096):
@@ -14,6 +14,7 @@ def getBytes(structure, root, chunkSize = 4096):
             while remainingBytes > 0:
                 yield file.read(chunkSize)
                 remainingBytes -= chunkSize
+        yield b'EOF'
     for dir in dirs:
         yield from getBytes(dirs[dir], f"{root}/{dir}", chunkSize)
         
@@ -22,9 +23,11 @@ if __name__ == "__main__":
     masterDir = "./test/master"
     clientDir = "./test/client"
 
-    structure = diff(getStructure(masterDir), getStructure(clientDir))
+    structure = diff(master:=getStructure(masterDir), client:=getStructure(clientDir))
+    print(master)
+    print(client)
     print(structure)
 
-    [print(i) for i in getBytes(structure, "./test/master")]
+
 
 
