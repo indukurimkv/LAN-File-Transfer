@@ -10,11 +10,11 @@ def Print(*args):
     print("[Server]", *args)
 
 class Listener(Thread):
-    def __init__(self, port=0, directory = "./master") -> int:
+    def __init__(self, syncDirectory, port=0) -> int:
         super().__init__()
         self.sock = socket.create_server(('', port))
         self.PORT = self.sock.getsockname()[1]
-        self.DIR = directory
+        self.DIR = syncDirectory
         
         self.connTracker = None
 
@@ -33,7 +33,7 @@ class Listener(Thread):
             
             safeSend(4096, conn)
             
-            for byteGroup in getBytes(diff, "./test/master"):
+            for byteGroup in getBytes(diff, self.DIR):
                 conn.sendall(byteGroup)
             
             safeSend(safeRecv(conn), conn)
@@ -59,7 +59,7 @@ class Listener(Thread):
             self.connTracker.append(self.PORT)
         super().start()
 
-def runServer():
+def runServer(syncDir):
     connections = []
     Print('Running on 0.0.0.0')
     with socket.create_server(('', 50000)) as s:
@@ -69,10 +69,10 @@ def runServer():
             conn, addr = s.accept()
             with conn:
                 Print('connected with', addr)
-                listener = Listener()
+                listener = Listener(syncDir)
                 listener.subscribeToConnectionUpdates(connections)
                 listener.start()
                 conn.sendall("{:<128}".format(listener.PORT).encode())
 
 if __name__ == "__main__":    
-    runServer()
+    runServer("./test/master")

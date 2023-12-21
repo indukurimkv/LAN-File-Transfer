@@ -5,8 +5,7 @@ import pickle
 def Print(*args):
     print("[Master]", *args)
 
-def runMaster():
-    root = './test/master'
+def runMaster(root):
     clients = {}
     with open("./global.cfg", "rb") as file:
         globalConfig= pickle.load(file)
@@ -55,5 +54,5 @@ def runMaster():
         
         
 if __name__ == '__main__':
-    runMaster()       
+    runMaster("./test/master")       
         

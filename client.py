@@ -101,10 +101,11 @@ def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
         currentStructure = getStructure(root)
             
 
-with open("./global.cfg", 'rb') as file:
-    globalConfig = pickle.load(file)
+if __name__ == "__main__":
+    with open("./global.cfg", 'rb') as file:
+        globalConfig = pickle.load(file)
 
-for i in range(1):
-    threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}", masterAddress=globalConfig["LANAddress"]), args=(i,)) for i in range(1)]
-    [i.start() for i in threads]
-    [i.join() for i in threads]
+    for i in range(1):
+        threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}", masterAddress=globalConfig["LANAddress"]), args=(i,)) for i in range(1)]
+        [i.start() for i in threads]
+        [i.join() for i in threads]
