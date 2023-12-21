@@ -49,19 +49,19 @@ def makeDirs(structure, root):
     for dir in dirs:
         makeDirs(dirs[dir], f"{root}/{dir}")
 
-def recursiveMirror(structure, root, connection: socket.socket, sendInitialInfo = True, chunkSize = -1):
-        print("syncing")
-        dirs, files = structure
-        makeDirs(structure, root)
+def recursiveMirror(structure, root, connection: socket.socket):
+    print("syncing")
+    makeDirs(structure, root)
 
-        # Send server diff info to recieve files
-        # Only send on first recursion
-        if sendInitialInfo:
-            safeSend(structure, connection)
-            # Get chunk size from server
-            chunkSize = safeRecv(connection)
-        
-        
+    # Send server diff info to recieve files
+    # Only send on first recursion
+    safeSend(structure, connection)
+    # Get chunk size from server
+    chunkSize = safeRecv(connection)
+    
+    def traverseDirs(structure, root):
+        dirs, files = structure
+
         for file in files:
             filePath = f"{root}/{file}"
 
@@ -81,7 +81,9 @@ def recursiveMirror(structure, root, connection: socket.socket, sendInitialInfo 
             print(connection.recv(3, socket.MSG_WAITALL).decode(), "wrote ", file)
                 
         for dir in dirs:
-            recursiveMirror(dirs[dir], f"{root}/{dir}", connection, sendInitialInfo=False, chunkSize = chunkSize)
+            traverseDirs(dirs[dir], f"{root}/{dir}")
+    
+    traverseDirs(structure, root)
 
 def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
     print(f"Attempting sync on {masterAddress}")
@@ -103,6 +105,6 @@ with open("./global.cfg", 'rb') as file:
     globalConfig = pickle.load(file)
 
 for i in range(1):
-    threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}", masterAddress=globalConfig["LANAddress"]), args=(i,)) for i in range(5)]
+    threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}", masterAddress=globalConfig["LANAddress"]), args=(i,)) for i in range(1)]
     [i.start() for i in threads]
     [i.join() for i in threads]

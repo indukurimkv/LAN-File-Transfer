@@ -13,7 +13,6 @@ def getBytes(structure, root, chunkSize = 4096):
         with open(join(root, file), 'rb') as file:
             remainingBytes = os.stat(filePath).st_size
             yield '{:<128}'.format(remainingBytes).encode()
-            Print(f"sending {remainingBytes} bytes")
             while remainingBytes > 0:
                 yield file.read(chunkSize)
                 remainingBytes -= chunkSize
