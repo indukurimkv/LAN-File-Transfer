@@ -10,13 +10,19 @@ def getBytes(structure, root, chunkSize = 4096):
     dirs, files = structure
     for file in files:
         filePath = root + "/" + file
-        with open(join(root, file), 'rb') as file:
-            remainingBytes = os.stat(filePath).st_size
-            yield '{:<128}'.format(remainingBytes).encode()
-            while remainingBytes > 0:
-                yield file.read(chunkSize)
-                remainingBytes -= chunkSize
-        yield b'EOF'
+
+        try:
+            with open(join(root, file), 'rb') as file:
+                remainingBytes = os.stat(filePath).st_size
+                yield '{:<128}'.format(remainingBytes).encode()
+                while remainingBytes > 0:
+                    yield file.read(chunkSize)
+                    remainingBytes -= chunkSize
+            yield b'EOF'
+        except Exception as e:
+            Print(f"Could not open directory {join(root,file)}. Stopping Sync")
+            Print(e)
+            return -1
     for dir in dirs:
         yield from getBytes(dirs[dir], f"{root}/{dir}", chunkSize)
         

@@ -22,19 +22,19 @@ def getConnectionPort(serverAddress = "127.0.0.1", serverPort = 50000):
 
 # Contact master server to get files to sync and peers to sync with
 def getDiff(clientStrcut, masterAddress = '', masterPort = 45000):
-    with socket.create_connection((masterAddress, masterPort)) as sock:
-        clientBytes = pickle.dumps(clientStrcut)
-        try:
-            sock.sendall("{:<128}".format(len(clientBytes)).encode())
-            sock.sendall(clientBytes)
-            serverMessageLen = int(sock.recv(128).decode())
-            serverMessage = pickle.loads(sock.recv(serverMessageLen))
+    try:
+        with socket.create_connection((masterAddress, masterPort)) as sock:
+
+            safeSend(clientStrcut, sock)
+            serverMessage = safeRecv(sock)
+
             if serverMessage == "synced":
                 return
             diff, addrs = serverMessage
             return diff, addr if (addr := random.choice(addrs)) != '0.0.0.0' else '127.0.0.1'
-        except:
-            print("Unable to contact server.")
+    except Exception as e:
+        print("Unable to contact server.")
+        print(e)
         
         
 
@@ -62,6 +62,7 @@ def recursiveMirror(structure, root, connection: socket.socket):
     def traverseDirs(structure, root):
         dirs, files = structure
 
+        connection.settimeout(10)
         for file in files:
             filePath = f"{root}/{file}"
 
@@ -82,17 +83,26 @@ def recursiveMirror(structure, root, connection: socket.socket):
                 
         for dir in dirs:
             traverseDirs(dirs[dir], f"{root}/{dir}")
-    
-    traverseDirs(structure, root)
+    try:
+        traverseDirs(structure, root)
+        return 0
+    except Exception as e:
+        print("Error cloning directory")
+        print(e)
+        return -1
 
 def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
     print(f"Attempting sync on {masterAddress}")
     while (diffInfo := getDiff(getStructure(root), masterAddress=masterAddress)) != None:
+        
         diff, addr = diffInfo
         print(f"peer address {addr}")
         with socket.create_connection((addr, port := getConnectionPort(addr))) as connection:
-            print(f"peer info: {addr}:{port}")        
-            recursiveMirror(diff, root, connection)
+            print(f"peer info: {addr}:{port}")  
+
+            # Attempt to clone directory from master and exit on error      
+            if recursiveMirror(diff, root, connection) == -1:
+                break
             
             safeSend("Clean Exit", connection)
             closeConfirm = safeRecv(connection)

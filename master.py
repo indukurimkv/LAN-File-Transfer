@@ -1,6 +1,7 @@
 from Directories import getStructure, diff
 import socket
 import pickle
+from utils import safeSend, safeRecv
 
 def Print(*args):
     print("[Master]", *args)
@@ -27,8 +28,7 @@ def runMaster(root):
                 continue
             
             with conn:
-                clientStructureLen = int(conn.recv(128).decode())
-                clientStructure = pickle.loads(conn.recv(clientStructureLen))
+                clientStructure = safeRecv(conn)
                 clients[addr] =  False
                 
                 
@@ -40,14 +40,13 @@ def runMaster(root):
                 if clientDiff == ({}, []):
                     clients[addr] = True
                     Print(f"{addr} is synced")
-                    message = pickle.dumps("synced")
+                    message = "synced"
                 else:
-                    message = pickle.dumps((clientDiff,
-                                            syncedClients := [i for i in clients if clients[i]]))
+                    message = (clientDiff, syncedClients := [i for i in clients if clients[i]])
+                    
                     Print(f"Sending diff to {addr}:\n{message}")
                     Print("Viable Peers:", syncedClients)
-                conn.sendall("{:<128}".format(len(message)).encode())
-                conn.sendall(message)
+                safeSend(message, conn)
                 
                 lastStructure = masterStructure
                 

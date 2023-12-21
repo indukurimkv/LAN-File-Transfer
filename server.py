@@ -27,13 +27,16 @@ class Listener(Thread):
             conn, self.clientAddr = self.sock.accept()
             
             diff = safeRecv(conn)
-            Print("Syncing the following with {}".format(self.clientAddr))
-            Print(diff)
+            Print("Syncing with {}".format(self.clientAddr))
             
             
             safeSend(4096, conn)
             
             for byteGroup in getBytes(diff, self.DIR):
+
+                # Make sure file is found before sending data
+                if byteGroup == -1:
+                    raise FileNotFoundError("File or directory could not be found.")
                 conn.sendall(byteGroup)
             
             safeSend(safeRecv(conn), conn)
@@ -45,6 +48,8 @@ class Listener(Thread):
             self.close()
         except Exception as e:
             Print(e) 
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
             self.close()    
       
     def close(self):
