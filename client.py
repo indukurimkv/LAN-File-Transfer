@@ -79,8 +79,6 @@ def recursiveMirror(structure, root, connection: socket.socket, chunkSize):
                 pbar.close()
                 
             print("wrote ", file)
-            EOF = connection.recv(3).decode()
-            assert EOF == "EOF"
                 
         for dir in dirs:
             recursiveMirror(dirs[dir], f"{root}/{dir}", connection, chunkSize)
