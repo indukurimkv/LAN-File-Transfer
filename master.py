@@ -5,10 +5,11 @@ import pickle
 if __name__ == "__main__":
     root = './test/master'
     clients = {}
+    NICAddress = '192.168.50.183'
     
     lastMasterStructure = None
     with socket.create_server(('', 45000)) as sock:
-        clients[sock.getsockname()[0]] = True
+        clients[NICAddress] = True
         
         sock.listen()
         while True:
@@ -28,7 +29,7 @@ if __name__ == "__main__":
                 masterStructure = getStructure(root)
                 # Desync all clients if changes are made.
                 if lastMasterStructure != masterStructure:
-                    clients = {sock.getsockname()[0]: True}
+                    clients = {NICAddress: True}
                     
                 clientDiff = diff(masterStructure, clientStructure)
                 if clientDiff == ({}, []):
