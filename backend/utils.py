@@ -11,8 +11,8 @@ def safeSend(data, conn: socket.socket, bufferSize=-1, numInitBits = 128):
 
 def safeRecv(conn: socket.socket, numInitBits = 128):
     try:
-        dataLen = int(conn.recv(numInitBits).decode())
-        return pickle.loads(conn.recv(dataLen))
+        dataLen = int(conn.recv(numInitBits, socket.MSG_WAITALL).decode())
+        return pickle.loads(conn.recv(dataLen, socket.MSG_WAITALL))
     except Exception as e:
         print(f'Failed to safely Recieve Bytes on {conn.getsockname()[0]}')
         print(e)

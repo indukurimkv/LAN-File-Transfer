@@ -2,9 +2,9 @@ import socket
 from threading import Thread
 import time
 import pickle
-from Loader import getBytes
 
-from utils import safeSend, safeRecv
+from backend.Loader import getBytes
+from backend.utils import safeSend, safeRecv
 
 def Print(*args):
     print("[Server]", *args)
@@ -33,10 +33,10 @@ class Listener(Thread):
             safeSend(4096, conn)
             
             for byteGroup in getBytes(diff, self.DIR):
-
                 # Make sure file is found before sending data
                 if byteGroup == -1:
                     raise FileNotFoundError("File or directory could not be found.")
+                
                 conn.sendall(byteGroup)
             
             safeSend(safeRecv(conn), conn)

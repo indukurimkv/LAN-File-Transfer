@@ -1,6 +1,6 @@
 import threading
-from master import runMaster
-from server import runServer
+from backend.master import runMaster
+from backend.server import runServer
 import pickle
 
 if __name__ == "__main__":

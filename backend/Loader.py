@@ -1,7 +1,8 @@
 import os
 from os.path import join
 import time
-from Directories import diff, getStructure
+
+from backend.Directories import diff, getStructure
 
 def Print(*args):
     print("[Loader]", *args)
@@ -22,7 +23,7 @@ def getBytes(structure, root, chunkSize = 4096):
         except Exception as e:
             Print(f"Could not open directory {join(root,file)}. Stopping Sync")
             Print(e)
-            return -1
+            yield -1
     for dir in dirs:
         yield from getBytes(dirs[dir], f"{root}/{dir}", chunkSize)
         

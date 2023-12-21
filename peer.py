@@ -1,5 +1,5 @@
-from client import sync
-from server import runServer
+from backend.client import sync
+from backend.server import runServer
 import pickle
 from threading import Thread
 

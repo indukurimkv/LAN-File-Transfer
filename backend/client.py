@@ -1,24 +1,28 @@
 import socket
-import time
-from Directories import getStructure
+import traceback
 import tqdm
 import pickle
 import os
 import random
 from threading import Thread
 import uuid
-from utils import safeSend, safeRecv
+
+from backend.Directories import getStructure
+from backend.utils import safeSend, safeRecv
+
+def Print(*args):
+    print("[Client]", *args)
 
 # General function to get connection info from peers
 def getConnectionPort(serverAddress = "127.0.0.1", serverPort = 50000):  
-    print("getting port on peer")  
+    Print("getting port on peer")  
     with socket.create_connection((serverAddress, serverPort)) as sock:
         # recieve info
         data = sock.recv(128)
     try:
         return int(data.decode())
     except:
-        print("Unable to convert recieved port to int.")
+        Print("Unable to convert recieved port to int.")
 
 # Contact master server to get files to sync and peers to sync with
 def getDiff(clientStrcut, masterAddress = '', masterPort = 45000):
@@ -33,8 +37,8 @@ def getDiff(clientStrcut, masterAddress = '', masterPort = 45000):
             diff, addrs = serverMessage
             return diff, addr if (addr := random.choice(addrs)) != '0.0.0.0' else '127.0.0.1'
     except Exception as e:
-        print("Unable to contact server.")
-        print(e)
+        Print("Unable to contact server.")
+        Print(e)
         
         
 
@@ -44,13 +48,13 @@ def makeDirs(structure, root):
         try:
             os.makedirs(root)
         except FileExistsError:
-            print(f"dir: {root} already exists. skipping.")
+            Print(f"dir: {root} already exists. skipping.")
         return
     for dir in dirs:
         makeDirs(dirs[dir], f"{root}/{dir}")
 
 def recursiveMirror(structure, root, connection: socket.socket):
-    print("syncing")
+    Print("syncing")
     makeDirs(structure, root)
 
     # Send server diff info to recieve files
@@ -62,7 +66,6 @@ def recursiveMirror(structure, root, connection: socket.socket):
     def traverseDirs(structure, root):
         dirs, files = structure
 
-        connection.settimeout(10)
         for file in files:
             filePath = f"{root}/{file}"
 
@@ -72,14 +75,14 @@ def recursiveMirror(structure, root, connection: socket.socket):
                 pbar = tqdm.tqdm(total=remainingBytes)
                 while remainingBytes > 0:
                     # Get largest frame smaller than number of bytes left to read 
-                    input = connection.recv(min(chunkSize, remainingBytes))
+                    input = connection.recv(min(chunkSize, remainingBytes), socket.MSG_WAITALL)
                     outFile.write(input)
                     remainingBytes -= chunkSize
                     
                     pbar.update(chunkSize)
                 pbar.close()
             
-            print(connection.recv(3, socket.MSG_WAITALL).decode(), "wrote ", file)
+            Print(connection.recv(3, socket.MSG_WAITALL).decode(), "wrote ", file)
                 
         for dir in dirs:
             traverseDirs(dirs[dir], f"{root}/{dir}")
@@ -87,18 +90,18 @@ def recursiveMirror(structure, root, connection: socket.socket):
         traverseDirs(structure, root)
         return 0
     except Exception as e:
-        print("Error cloning directory")
-        print(e)
+        Print("Error cloning directory")
+        traceback.print_exc()
         return -1
 
 def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
-    print(f"Attempting sync on {masterAddress}")
+    Print(f"Attempting sync on {masterAddress}")
     while (diffInfo := getDiff(getStructure(root), masterAddress=masterAddress)) != None:
         
         diff, addr = diffInfo
-        print(f"peer address {addr}")
+        Print(f"peer address {addr}")
         with socket.create_connection((addr, port := getConnectionPort(addr))) as connection:
-            print(f"peer info: {addr}:{port}")  
+            Print(f"peer info: {addr}:{port}")  
 
             # Attempt to clone directory from master and exit on error      
             if recursiveMirror(diff, root, connection) == -1:
@@ -106,7 +109,7 @@ def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
             
             safeSend("Clean Exit", connection)
             closeConfirm = safeRecv(connection)
-            print(f"{closeConfirm} from {addr}:{port}")
+            Print(f"{closeConfirm} from {addr}:{port}")
 
         currentStructure = getStructure(root)
             
