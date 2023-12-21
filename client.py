@@ -77,14 +77,15 @@ def recursiveMirror(structure, root, connection: socket.socket, chunkSize):
                     
                     pbar.update(chunkSize)
                 pbar.close()
-                
+            print(connection.recv(3).decode())
             print("wrote ", file)
                 
         for dir in dirs:
             recursiveMirror(dirs[dir], f"{root}/{dir}", connection, chunkSize)
 def sync(root, chunkSize = None):
-    while (diffInfo := getDiff(getStructure(root))) != None:
+    while (diffInfo := getDiff(getStructure(root), masterAddress='192.168.50.183')) != None:
         diff, addr = diffInfo
+        print(f"peer address {addr}")
         with socket.create_connection((addr, port := getConnectionPort(addr))) as connection:
             print(f"peer info: {addr}:{port}")        
             recursiveMirror(diff, root, connection, chunkSize)
@@ -97,6 +98,6 @@ def sync(root, chunkSize = None):
             
 
 for i in range(1):
-    threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}"), args=(i,)) for i in range(2)]
+    threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}"), args=(i,)) for i in range(1)]
     [i.start() for i in threads]
     [i.join() for i in threads]
