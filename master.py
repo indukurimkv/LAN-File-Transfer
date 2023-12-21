@@ -7,9 +7,9 @@ if __name__ == "__main__":
     clients = {}
     NICAddress = '192.168.50.183'
     
-    lastMasterStructure = None
     with socket.create_server(('', 45000)) as sock:
         clients[NICAddress] = True
+        lastStructure = None
         
         sock.listen()
         while True:
@@ -27,22 +27,24 @@ if __name__ == "__main__":
                 
                 
                 masterStructure = getStructure(root)
-                # Desync all clients if changes are made.
-                if lastMasterStructure != masterStructure:
-                    clients = {NICAddress: True}
-                    
                 clientDiff = diff(masterStructure, clientStructure)
+                if lastStructure != masterStructure:
+                    clients = {NICAddress: True}
+                clients[NICAddress] = True
                 if clientDiff == ({}, []):
                     clients[addr] = True
                     print(f"{addr} is synced")
                     message = pickle.dumps("synced")
                 else:
-                    message = pickle.dumps((clientDiff, [i for i in clients if clients[i]]))
+                    message = pickle.dumps((clientDiff,
+                                            syncedClients := [i for i in clients if clients[i]]))
                     print(f"Sending diff to {addr}:\n{message}")
+                    print("Viable Peers:", syncedClients)
                 conn.sendall("{:<128}".format(len(message)).encode())
                 conn.sendall(message)
                 
-                lastMasterStructure = masterStructure
+                lastStructure = masterStructure
+                
         
         
         

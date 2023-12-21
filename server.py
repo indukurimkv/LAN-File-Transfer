@@ -30,7 +30,9 @@ class Listener(Thread):
             for byteGroup in getBytes(diff, "./test/master"):
                 conn.sendall(byteGroup)
             
-            conn.sendall(conn.recv(16))
+            time.sleep(1)
+            conn.sendall(msg := conn.recv(16, socket.MSG_WAITALL))
+            print(f"recieved {msg.decode()} from {self.clientAddr}")
             
                 
     def run(self) -> None:
