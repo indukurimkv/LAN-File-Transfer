@@ -7,6 +7,7 @@ import os
 import random
 from threading import Thread
 import uuid
+from utils import safeSend, safeRecv
 
 # General function to get connection info from peers
 def getConnectionPort(serverAddress = "127.0.0.1", serverPort = 50000):  
@@ -48,24 +49,23 @@ def makeDirs(structure, root):
     for dir in dirs:
         makeDirs(dirs[dir], f"{root}/{dir}")
 
-def recursiveMirror(structure, root, connection: socket.socket, chunkSize, sendInitialInfo = True):
+def recursiveMirror(structure, root, connection: socket.socket, sendInitialInfo = True, chunkSize = -1):
         print("syncing")
         dirs, files = structure
         makeDirs(structure, root)
+
+        # Send server diff info to recieve files
+        # Only send on first recursion
         if sendInitialInfo:
-            diffLength = "{:<128}".format(len(diff := pickle.dumps(structure)))
-            
-            connection.sendall(diffLength.encode())
-            connection.sendall(diff)
-            
-            if chunkSize == None:
-                try:
-                    chunkSize = int(connection.recv(128))
-                except:
-                    chunkSize = 10
+            safeSend(structure, connection)
+            # Get chunk size from server
+            chunkSize = safeRecv(connection)
+        
         
         for file in files:
             filePath = f"{root}/{file}"
+
+            # get bytes left to read on file returned by loader function on server
             remainingBytes = int(connection.recv(128, socket.MSG_WAITALL).decode())
             with open(filePath, "wb") as outFile:
                 pbar = tqdm.tqdm(total=remainingBytes)
@@ -81,7 +81,8 @@ def recursiveMirror(structure, root, connection: socket.socket, chunkSize, sendI
             print(connection.recv(3, socket.MSG_WAITALL).decode(), "wrote ", file)
                 
         for dir in dirs:
-            recursiveMirror(dirs[dir], f"{root}/{dir}", connection, chunkSize, sendInitialInfo=False)
+            recursiveMirror(dirs[dir], f"{root}/{dir}", connection, sendInitialInfo=False, chunkSize = chunkSize)
+
 def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
     print(f"Attempting sync on {masterAddress}")
     while (diffInfo := getDiff(getStructure(root), masterAddress=masterAddress)) != None:
@@ -89,11 +90,11 @@ def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
         print(f"peer address {addr}")
         with socket.create_connection((addr, port := getConnectionPort(addr))) as connection:
             print(f"peer info: {addr}:{port}")        
-            recursiveMirror(diff, root, connection, chunkSize)
+            recursiveMirror(diff, root, connection)
             
-            connection.sendall(before := '{:<16}'.format("Clean exit").encode())
-            closeConfirm = str(connection.recv(16).decode())
-            print(f"{closeConfirm} from {addr}:{port}", before)
+            safeSend("Clean Exit", connection)
+            closeConfirm = safeRecv(connection)
+            print(f"{closeConfirm} from {addr}:{port}")
 
         currentStructure = getStructure(root)
             
@@ -102,6 +103,6 @@ with open("./global.cfg", 'rb') as file:
     globalConfig = pickle.load(file)
 
 for i in range(1):
-    threads = [Thread(target=lambda x: sync(f"./test/client", masterAddress=globalConfig["LANAddress"]), args=(i,)) for i in range(1)]
+    threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}", masterAddress=globalConfig["LANAddress"]), args=(i,)) for i in range(5)]
     [i.start() for i in threads]
     [i.join() for i in threads]

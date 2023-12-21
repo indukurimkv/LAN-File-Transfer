@@ -4,6 +4,8 @@ import time
 import pickle
 from Loader import getBytes
 
+from utils import safeSend, safeRecv
+
 def Print(*args):
     print("[Server]", *args)
 
@@ -23,17 +25,18 @@ class Listener(Thread):
         with self.sock:
             self.sock.listen()
             conn, self.clientAddr = self.sock.accept()
-            diffLength = int(conn.recv(128).decode())
-            diff = pickle.loads(conn.recv(diffLength))
+            
+            diff = safeRecv(conn)
             Print("Syncing the following with {}".format(self.clientAddr))
             Print(diff)
             
             
-            conn.sendall("{:<128}".format(4096).encode())
+            safeSend(4096, conn)
+            
             for byteGroup in getBytes(diff, "./test/master"):
                 conn.sendall(byteGroup)
             
-            conn.sendall(conn.recv(16, socket.MSG_WAITALL))
+            safeSend(safeRecv(conn), conn)
             
                 
     def run(self) -> None:
