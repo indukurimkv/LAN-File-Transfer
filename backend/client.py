@@ -8,7 +8,7 @@ from threading import Thread
 import uuid
 
 from backend.Directories import getStructure
-from backend.utils import safeSend, safeRecv
+from backend.utils import safeSend, safeRecv, recieveAll
 
 def Print(*args):
     print("[Client]", *args)
@@ -18,7 +18,7 @@ def getConnectionPort(serverAddress = "127.0.0.1", serverPort = 50000):
     Print("getting port on peer")  
     with socket.create_connection((serverAddress, serverPort)) as sock:
         # recieve info
-        data = sock.recv(128)
+        data = recieveAll(128, sock)
     try:
         return int(data.decode())
     except:
@@ -27,7 +27,7 @@ def getConnectionPort(serverAddress = "127.0.0.1", serverPort = 50000):
 # Contact master server to get files to sync and peers to sync with
 def getDiff(clientStrcut, masterAddress = '', masterPort = 45000):
     try:
-        with socket.create_connection((masterAddress, masterPort)) as sock:
+        with socket.create_connection((masterAddress, masterPort), timeout=5) as sock:
 
             safeSend(clientStrcut, sock)
             serverMessage = safeRecv(sock)
@@ -70,19 +70,19 @@ def recursiveMirror(structure, root, connection: socket.socket):
             filePath = f"{root}/{file}"
 
             # get bytes left to read on file returned by loader function on server
-            remainingBytes = int(connection.recv(128, socket.MSG_WAITALL).decode())
+            remainingBytes = int(recieveAll(128, connection).decode())
             with open(filePath, "wb") as outFile:
                 pbar = tqdm.tqdm(total=remainingBytes)
                 while remainingBytes > 0:
                     # Get largest frame smaller than number of bytes left to read 
-                    input = connection.recv(min(chunkSize, remainingBytes), socket.MSG_WAITALL)
+                    input = recieveAll(min(chunkSize, remainingBytes), connection)
                     outFile.write(input)
                     remainingBytes -= len(input)
                     
                     pbar.update(chunkSize)
                 pbar.close()
             
-            Print(connection.recv(3, socket.MSG_WAITALL).decode(), "wrote ", file)
+            Print(recieveAll(3, connection).decode(), "wrote ", file)
                 
         for dir in dirs:
             traverseDirs(dirs[dir], f"{root}/{dir}")
