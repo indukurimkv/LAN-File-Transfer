@@ -64,13 +64,21 @@ class Listener(Thread):
             self.connTracker.append(self.PORT)
         super().start()
 
-def runServer(syncDir):
+def runServer(syncDir, lockClient):
     connections = []
     Print('Running on 0.0.0.0')
     with socket.create_server(('', 50000)) as s:
         s.listen()
         while True:
-            if(len(connections) >=30): continue
+            if(numConn := len(connections) >=30): continue
+            
+            if(numConn >0): 
+                lockClient[0] = True
+                Print("Locked Client")
+            else:
+                lockClient[0] = False
+                Print("Unlocked Client")
+            
             conn, addr = s.accept()
             with conn:
                 Print('connected with', addr)

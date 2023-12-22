@@ -47,7 +47,7 @@ def runMaster(root):
                     else:
                         message = (clientDiff, syncedClients := [i for i in clients if clients[i]])
                         
-                        Print(f"Sending diff to {addr}:\n{message}")
+                        Print(f"Sending diff to {addr}:{port}\n{message}")
                         Print("Viable Peers:", syncedClients)
                     safeSend(message, conn)
                     
@@ -58,5 +58,5 @@ def runMaster(root):
         
         
 if __name__ == '__main__':
-    runMaster("./test/master")       
+    runMaster("./test/another")       
         

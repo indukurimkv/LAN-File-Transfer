@@ -8,7 +8,7 @@ if __name__ == "__main__":
         config = pickle.load(file)
     
     masterThread = threading.Thread(target=runMaster, args=(config["SyncDir"], ))
-    serverThread = threading.Thread(target=runServer, args=(config["SyncDir"], ))
+    serverThread = threading.Thread(target=runServer, args=(config["SyncDir"], [False]))
     masterThread.start()
     serverThread.start()
 
