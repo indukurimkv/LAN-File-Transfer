@@ -10,16 +10,18 @@ class Config(Tk):
     def __init__(self):
         super().__init__()
 
-        self.geometry("250x150")
+        self.geometry("350x150")
         self.resizable(True, False)
         self.title("LAN File Mirroring")
         self.header = Label(self, text="LAN File Mirroring").grid(row=0, column=0, columnspan=2)
 
-        self.lanAddrLabel = Label(self, text="LAN IP Address of Host")
-        self.sourceAddrLabel = Label(self, text="LAN IP Address of Source")
-        self.isSourceLabel = Label(self, text="Host is source")
+        self.lanAddrLabel = Label(self, text="Host IP Address")
+        self.sourceAddrLabel = Label(self, text="Source IP Address")
+        self.isSourceLabel = Label(self, text="Host is Source")
         
         self.lanAddrIn = Entry(self)
+        self.lanAddrIn.bind('<Return>', self.updateSourceAddr)
+        self.lanAddrIn.bind('<Tab>', self.updateSourceAddr)
         self.sourceAddrInVar = StringVar()
         self.sourceAddrIn = Entry(self, textvariable=self.sourceAddrInVar)
         self.isSourceVar = BooleanVar()
@@ -27,7 +29,7 @@ class Config(Tk):
         self.isSourceCheck = ttk.Checkbutton(self, command=self.updateSourceAddr, variable=self.isSourceVar)
 
 
-        self.askFolderLabel = Label(self, text="Select Folder to Sync")
+        self.askFolderLabel = Label(self, text="Folder to Sync")
         self.askFolderButton = Button(self, text="Select Folder", command=self.setFolder)
         self.syncDir = ''
 
@@ -83,7 +85,7 @@ class Config(Tk):
             print(f"Saved: \n{config}")
         self.quit()
     
-    def updateSourceAddr(self):
+    def updateSourceAddr(self, *args):
         if self.isSourceVar.get():
             self.sourceAddrInVar.set(
                 self.lanAddrIn.get()
