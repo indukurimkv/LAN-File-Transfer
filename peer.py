@@ -24,7 +24,8 @@ if __name__ == "__main__":
     clientThread = Thread(target = runClient, args=(
         config["SyncDir"],
         sourceAddr,
-        lockClient
+        lockClient,
+        config["ClientRetryTime"]
     ))
     serverThread = Thread(target=runServer, args=(config["SyncDir"], lockClient))
 
