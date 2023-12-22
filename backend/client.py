@@ -77,7 +77,7 @@ def recursiveMirror(structure, root, connection: socket.socket):
                     # Get largest frame smaller than number of bytes left to read 
                     input = connection.recv(min(chunkSize, remainingBytes), socket.MSG_WAITALL)
                     outFile.write(input)
-                    remainingBytes -= chunkSize
+                    remainingBytes -= len(input)
                     
                     pbar.update(chunkSize)
                 pbar.close()
