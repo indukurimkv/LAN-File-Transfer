@@ -9,6 +9,7 @@ import uuid
 
 from backend.Directories import getStructure
 from backend.utils import safeSend, safeRecv, recieveAll
+from backend.Interfaces import confToIp
 
 def Print(*args):
     print("[Client]", *args)
@@ -16,7 +17,7 @@ def Print(*args):
 # General function to get connection info from peers
 def getConnectionPort(serverAddress = "127.0.0.1", serverPort = 50000):  
     Print("getting port on peer")  
-    with socket.create_connection((serverAddress, serverPort)) as sock:
+    with socket.create_connection((serverAddress, serverPort), timeout=5) as sock:
         # recieve info
         data = recieveAll(128, sock)
     try:
@@ -60,8 +61,6 @@ def recursiveMirror(structure, root, connection: socket.socket):
     # Send server diff info to recieve files
     # Only send on first recursion
     safeSend(structure, connection)
-    # Get chunk size from server
-    chunkSize = safeRecv(connection)
     
     def traverseDirs(structure, root):
         dirs, files = structure
@@ -70,19 +69,29 @@ def recursiveMirror(structure, root, connection: socket.socket):
             filePath = f"{root}/{file}"
 
             # get bytes left to read on file returned by loader function on server
-            remainingBytes = int(recieveAll(128, connection).decode())
+            fileSize = int(recieveAll(128, connection).decode())
+            Print(f"Writing {file}")
             with open(filePath, "wb") as outFile:
-                pbar = tqdm.tqdm(total=remainingBytes)
-                while remainingBytes > 0:
-                    # Get largest frame smaller than number of bytes left to read 
-                    input = recieveAll(min(chunkSize, remainingBytes), connection)
-                    outFile.write(input)
-                    remainingBytes -= len(input)
-                    
-                    pbar.update(chunkSize)
+                pbar = tqdm.tqdm(total=fileSize)
+
+                # Recieve all bytes of file
+                # Callback writes file to local dir and updates pbar
+                recieveAll(
+                    fileSize,
+                    connection,
+                    onRecieve= lambda x: pbar.update(
+                        outFile.write(x)
+                    )
+                )
+                timeToWrite = pbar.format_dict["elapsed"]
                 pbar.close()
-            
-            Print(recieveAll(3, connection).decode(), "wrote ", file)
+            if (writtenSize := os.stat(filePath).st_size) == fileSize:
+                Print(f"Wrote {fileSize} bytes in {timeToWrite} seconds")
+            else:
+                Print(f"Only wrote {writtenSize}/{fileSize} bytes to {file}.")
+                Print(f"Aborting sync for {file}")
+                try: os.remove(filePath)
+                except: Print(f"""Failed to remove incomplete file: {file}. Manually delete it to resync.""")
                 
         for dir in dirs:
             traverseDirs(dirs[dir], f"{root}/{dir}")
@@ -100,7 +109,12 @@ def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
         
         diff, addr = diffInfo
         Print(f"peer address {addr}")
-        with socket.create_connection((addr, port := getConnectionPort(addr))) as connection:
+        
+        # Talk to peer to negotiate private port for P2P sync
+        try: port = getConnectionPort(addr) 
+        except: Print("Unable to negotiate port on peer"); return
+
+        with socket.create_connection((addr, port)) as connection:
             Print(f"peer info: {addr}:{port}")  
 
             # Attempt to clone directory from master and exit on error      
@@ -115,10 +129,8 @@ def sync(root, chunkSize = None, masterAddress = '127.0.0.1'):
             
 
 if __name__ == "__main__":
-    with open("./global.cfg", 'rb') as file:
-        globalConfig = pickle.load(file)
 
     for i in range(1):
-        threads = [Thread(target=lambda x: sync(f"./test/client{uuid.uuid4().hex}", masterAddress=globalConfig["LANAddress"]), args=(i,)) for i in range(1)]
+        threads = [Thread(target=lambda x: sync(f"./test/client", masterAddress=confToIp("LANAddress", './global.cfg')), args=(i,)) for i in range(1)]
         [i.start() for i in threads]
         [i.join() for i in threads]

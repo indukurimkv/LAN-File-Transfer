@@ -30,8 +30,6 @@ class Listener(Thread):
             Print("Syncing with {}".format(self.clientAddr))
             
             
-            safeSend(4096, conn)
-            
             for byteGroup in getBytes(diff, self.DIR):
                 # Make sure file is found before sending data
                 if byteGroup == -1:
@@ -70,9 +68,9 @@ def runServer(syncDir, lockClient):
     with socket.create_server(('', 50000)) as s:
         s.listen()
         while True:
-            if(numConn := len(connections) >=30): continue
+            if((numConn := len(connections)) >=30): continue
             
-            if(numConn >0): 
+            if(numConn > 0): 
                 lockClient[0] = True
                 Print("Locked Client")
             else:

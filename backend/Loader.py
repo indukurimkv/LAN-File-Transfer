@@ -19,7 +19,7 @@ def getBytes(structure, root, chunkSize = 4096):
                 while remainingBytes > 0:
                     yield file.read(chunkSize)
                     remainingBytes -= chunkSize
-            yield b'EOF'
+                    
         except Exception as e:
             Print(f"Could not open directory {join(root,file)}. Stopping Sync")
             Print(e)

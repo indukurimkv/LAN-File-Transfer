@@ -1,12 +1,18 @@
 import socket
 import pickle
 
-def recieveAll(numBytes , conn):
+# Return numBytes bytes from buffer. 
+# onRecieve callback can perform operations on recieved bytes.
+def recieveAll(numBytes: int, conn: socket.socket, onRecieve = None):
     out = b''
-    recievedBytes = 0
-    while recievedBytes < numBytes:
-        out += conn.recv(numBytes - recievedBytes)
-        recievedBytes += len(out)
+    numRecievedBytes = 0
+    while numRecievedBytes < numBytes:
+        recievedBytes = conn.recv(numBytes - numRecievedBytes)
+        numRecievedBytes += len(recievedBytes)
+        if onRecieve != None:
+            onRecieve(recievedBytes)
+        else:
+            out += recievedBytes
     return out
 
 # safeSend and safeRecv must be used as a pair on client and server side!
