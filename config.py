@@ -3,25 +3,33 @@ import pickle
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
-
 import re
 
+from backend.Interfaces import getInterfaces
+    
 class Config(Tk):
     def __init__(self):
         super().__init__()
+        self.interfaces = getInterfaces()
+        interfaceNames = list(self.interfaces.keys())
+        
+        if(len(self.interfaces) == 0):
+            print("No NICs Found!")
+            return
 
         self.geometry("350x150")
         self.resizable(True, False)
         self.title("LAN File Mirroring")
         self.header = Label(self, text="LAN File Mirroring").grid(row=0, column=0, columnspan=2)
 
-        self.lanAddrLabel = Label(self, text="Host IP Address")
-        self.sourceAddrLabel = Label(self, text="Source IP Address")
+        self.lanAddrLabel = Label(self, text="Host NIC")
+        self.sourceAddrLabel = Label(self, text="Source IP")
         self.isSourceLabel = Label(self, text="Host is Source")
         
-        self.lanAddrIn = Entry(self)
-        self.lanAddrIn.bind('<Return>', self.updateSourceAddr)
-        self.lanAddrIn.bind('<Tab>', self.updateSourceAddr)
+        self.lanAddrVar = StringVar()
+        self.lanAddrVar.set(interfaceNames[0])
+        self.lanAddrSelection = OptionMenu(self, self.lanAddrVar, *interfaceNames, command=self.updateSourceAddr)
+        
         self.sourceAddrInVar = StringVar()
         self.sourceAddrIn = Entry(self, textvariable=self.sourceAddrInVar)
         self.isSourceVar = BooleanVar()
@@ -42,7 +50,7 @@ class Config(Tk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        self.lanAddrIn.grid(row = 1, column = 1, sticky=EW, padx=2.5)
+        self.lanAddrSelection.grid(row = 1, column = 1, sticky=EW, padx=2.5)
         self.isSourceCheck.grid(row=2, column=1, sticky=W)
         self.sourceAddrIn.grid(row = 3, column = 1, sticky=EW, padx=2.5)
 
@@ -61,12 +69,13 @@ class Config(Tk):
 
     def validate(self):
         out = {}
-        IPPattern = '^([0-9]{1,3}\\.){3}[0-9]{1,3}$'
-        if re.match(IPPattern, lanAddr := self.lanAddrIn.get()) and \
-            re.match(IPPattern, sourceAddr := self.sourceAddrIn.get()) and \
+        IPPattern = "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
+        
+        hostInt = self.lanAddrVar.get()
+        if re.match(IPPattern, sourceAddr := self.sourceAddrIn.get()) and \
                 self.syncDir:
             
-            out["LANAddress"] = lanAddr
+            out["LANAddress"] = hostInt, self.interfaces[hostInt][0]
             out["SourceAddress"] = sourceAddr
             out["SyncDir"] = self.syncDir
             
@@ -87,17 +96,11 @@ class Config(Tk):
     
     def updateSourceAddr(self, *args):
         if self.isSourceVar.get():
-            self.sourceAddrInVar.set(
-                self.lanAddrIn.get()
-            )
+            name = self.lanAddrVar.get()
+            self.sourceAddrInVar.set(self.interfaces[name][1])
 
         
 
 if __name__ == "__main__":
     Config()
-    globalConfig = {
-        "LANAddress": "192.168.50.95",
-        "SourceAddress": "192.168.50.183",
-        "SyncDir": "./test/master"
-    }
 

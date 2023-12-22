@@ -1,4 +1,7 @@
 env/
 test/
+build/
+dist/
+spec/
 __pycache__/
 global.cfg

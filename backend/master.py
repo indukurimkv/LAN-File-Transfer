@@ -4,16 +4,16 @@ import traceback
 
 from backend.utils import safeSend, safeRecv
 from backend.Directories import getStructure, diff
+from backend.Interfaces import confToIp
+
 
 def Print(*args):
     print("[Master]", *args)
 
 def runMaster(root):
     clients = {}
-    with open("./global.cfg", "rb") as file:
-        globalConfig= pickle.load(file)
 
-    NICAddress = globalConfig["LANAddress"]
+    NICAddress = confToIp("LANAddress", "./global.cfg")
 
     with socket.create_server(('', 45000)) as sock:
         Print(f"Running on {sock.getsockname()[0]}")
