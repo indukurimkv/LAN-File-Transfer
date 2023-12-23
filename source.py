@@ -3,9 +3,7 @@ from backend.master import runMaster
 from backend.server import runServer
 import pickle
 
-if __name__ == "__main__":
-    with open("./global.cfg", 'rb') as file:
-        config = pickle.load(file)
+def source(config):
     maxConnections = config["maxConnections"]
 
     masterThread = threading.Thread(target=runMaster, 

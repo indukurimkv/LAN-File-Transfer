@@ -3,6 +3,7 @@ import pickle
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
+from PIL import Image, ImageTk
 import re
 
 from backend.Interfaces import getInterfaces
@@ -21,6 +22,7 @@ class Config(Tk):
         self.geometry("350x175")
         self.resizable(True, False)
         self.title("LAN File Mirroring")
+        self.iconbitmap('./icon.ico')
         self.header = Label(self, text="LAN File Mirroring").grid(row=0, column=0, columnspan=2)
         
         self.lanAddrVar = StringVar()
@@ -92,6 +94,7 @@ class Config(Tk):
             out["SyncDir"] = self.syncDir
             out["ClientRetryTime"] = retryTime
             out["maxConnections"] = maxConnections
+            out["isSource"] = self.isSourceVar.get()
             
             return out
     def save(self):

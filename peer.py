@@ -14,9 +14,7 @@ def runClient(syncDir, masterAddress, lockClient, reloadTime = 30):
         sync(syncDir, masterAddress=masterAddress)
         time.sleep(reloadTime)
 
-if __name__ == "__main__":
-    with open("./global.cfg", "rb") as file:
-        config = pickle.load(file)
+def peer(config):
     sourceAddr = config["SourceAddress"]
     maxConnections = config["maxConnections"]
     syncDir = config["SyncDir"]
