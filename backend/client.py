@@ -1,11 +1,9 @@
 import socket
 import traceback
 import tqdm
-import pickle
 import os
 import random
 from threading import Thread
-import uuid
 
 from backend.Directories import getStructure
 from backend.utils import safeSend, safeRecv, recieveAll
@@ -19,11 +17,7 @@ def getConnectionPort(serverAddress = "127.0.0.1", serverPort = 50000):
     Print("getting port on peer")  
     with socket.create_connection((serverAddress, serverPort), timeout=5) as sock:
         # recieve info
-        data = recieveAll(128, sock)
-    try:
-        return int(data.decode())
-    except:
-        Print("Unable to convert recieved port to int.")
+        return safeRecv(sock)
 
 # Contact master server to get files to sync and peers to sync with
 def getDiff(clientStrcut, masterAddress = '', masterPort = 45000):
@@ -72,7 +66,7 @@ def recursiveMirror(structure, root, connection: socket.socket):
             fileSize = int(recieveAll(128, connection).decode())
             Print(f"Writing {file}")
             with open(filePath, "wb") as outFile:
-                pbar = tqdm.tqdm(total=fileSize)
+                pbar = tqdm.tqdm(total=fileSize, desc='[Client]', unit="bytes", smoothing=.1, colour='green')
 
                 # Recieve all bytes of file
                 # Callback writes file to local dir and updates pbar
@@ -83,13 +77,10 @@ def recursiveMirror(structure, root, connection: socket.socket):
                         outFile.write(x)
                     )
                 )
-                timeToWrite = pbar.format_dict["elapsed"]
                 pbar.close()
-            if (writtenSize := os.stat(filePath).st_size) == fileSize:
-                Print(f"Wrote {fileSize} bytes in {timeToWrite} seconds")
-            else:
-                Print(f"Only wrote {writtenSize}/{fileSize} bytes to {file}.")
-                Print(f"Aborting sync for {file}")
+                
+            if os.stat(filePath).st_size != fileSize:
+                Print(f"Could not write all bytes. Aborting sync for {file}")
                 try: os.remove(filePath)
                 except: Print(f"""Failed to remove incomplete file: {file}. Manually delete it to resync.""")
                 

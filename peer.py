@@ -18,16 +18,21 @@ if __name__ == "__main__":
     with open("./global.cfg", "rb") as file:
         config = pickle.load(file)
     sourceAddr = config["SourceAddress"]
+    maxConnections = config["maxConnections"]
+    syncDir = config["SyncDir"]
 
-    lockClient = [True]
+    lockClient = [False]
     
     clientThread = Thread(target = runClient, args=(
-        config["SyncDir"],
+        syncDir,
         sourceAddr,
         lockClient,
         config["ClientRetryTime"]
     ))
-    serverThread = Thread(target=runServer, args=(config["SyncDir"], lockClient))
+    serverThread = Thread(target=runServer, 
+        args=(syncDir, lockClient), 
+        kwargs={"maxConnections":maxConnections}
+    )
 
     clientThread.start()
     serverThread.start()

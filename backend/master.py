@@ -10,7 +10,7 @@ from backend.Interfaces import confToIp
 def Print(*args):
     print("[Master]", *args)
 
-def runMaster(root):
+def runMaster(root, maxConnections=3):
     clients = {}
 
     NICAddress = confToIp("LANAddress", "./global.cfg")
@@ -24,7 +24,7 @@ def runMaster(root):
         while True:
             conn, (addr, port) = sock.accept()
             Print(f"connected to {addr}")
-            if len(clients) > 30 and addr not in clients:
+            if len(clients) > maxConnections and addr not in clients:
                 conn.shutdown(socket.SHUT_RDWR)
                 conn.close()
                 continue

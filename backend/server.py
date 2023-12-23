@@ -18,7 +18,8 @@ class Listener(Thread):
         
         self.connTracker = None
 
-    def subscribeToConnectionUpdates(self, connections):
+    def subscribeToConnectionUpdates(self, connections, clientLock = None):
+        self.clientLock = clientLock
         self.connTracker = connections
     
     def sendData(self):
@@ -53,37 +54,39 @@ class Listener(Thread):
     def close(self):
         Print("closed connection with {}".format(self.clientAddr))
         if self.connTracker != None:
-            self.connTracker.remove(self.PORT)      
+            self.connTracker.remove(self.PORT)   
+        
+        if self.clientLock != None:
+            self.clientLock[0] = len(self.connTracker) > 0
+            Print(f"Host Locked: {self.clientLock[0]}")
+
 
 
     def start(self) -> None:
         Print(self.connTracker)
         if self.connTracker != None:
             self.connTracker.append(self.PORT)
+        if self.clientLock != None:
+            self.clientLock[0] = True
+            Print(f"Host Locked: True")
+
         super().start()
 
-def runServer(syncDir, lockClient):
+def runServer(syncDir, lockClient, maxConnections=3):
     connections = []
     Print('Running on 0.0.0.0')
     with socket.create_server(('', 50000)) as s:
         s.listen()
         while True:
-            if((numConn := len(connections)) >=30): continue
-            
-            if(numConn > 0): 
-                lockClient[0] = True
-                Print("Locked Client")
-            else:
-                lockClient[0] = False
-                Print("Unlocked Client")
+            if((numConn := len(connections)) >=maxConnections): continue
             
             conn, addr = s.accept()
             with conn:
                 Print('connected with', addr)
                 listener = Listener(syncDir)
-                listener.subscribeToConnectionUpdates(connections)
+                listener.subscribeToConnectionUpdates(connections, lockClient)
                 listener.start()
-                conn.sendall("{:<128}".format(listener.PORT).encode())
+                safeSend(listener.PORT, conn)
 
 if __name__ == "__main__":    
     runServer("./test/master")

@@ -10,6 +10,7 @@ from backend.Interfaces import getInterfaces
 class Config(Tk):
     def __init__(self):
         super().__init__()
+
         self.interfaces = getInterfaces()
         interfaceNames = list(self.interfaces.keys())
         
@@ -21,19 +22,18 @@ class Config(Tk):
         self.resizable(True, False)
         self.title("LAN File Mirroring")
         self.header = Label(self, text="LAN File Mirroring").grid(row=0, column=0, columnspan=2)
-
-        self.lanAddrLabel = Label(self, text="Host NIC")
-        self.sourceAddrLabel = Label(self, text="Source IP")
-        self.isSourceLabel = Label(self, text="Host is Source")
-        self.clientRetryTimeLabel = Label(self, text="Refresh Time")
         
         self.lanAddrVar = StringVar()
         self.lanAddrVar.set(interfaceNames[0])
         self.lanAddrSelection = OptionMenu(self, self.lanAddrVar, *interfaceNames, command=self.updateSourceAddr)
         
-        _ = StringVar()
-        _.set(30)
-        self.clientRetryTimeEntry = Entry(self, textvariable=_)
+
+        self.clientRetryTimeEntry = Entry(self)
+        self.clientRetryTimeEntry.insert(END, "30")
+
+        self.maxConnectionsEntry = Entry(self)
+        self.maxConnectionsEntry.insert(END, "3")
+        
 
         self.sourceAddrInVar = StringVar()
         self.sourceAddrIn = Entry(self, textvariable=self.sourceAddrInVar)
@@ -42,34 +42,34 @@ class Config(Tk):
         self.isSourceCheck = ttk.Checkbutton(self, command=self.updateSourceAddr, variable=self.isSourceVar)
 
 
-        self.askFolderLabel = Label(self, text="Folder to Sync")
         self.askFolderButton = Button(self, text="Select Folder", command=self.setFolder)
         self.syncDir = ''
 
         self.saveButton = Button(self, text="Save", command=self.save)
 
-        self.lanAddrLabel.grid(row = 1, column = 0, sticky=W)
-        self.isSourceLabel.grid(row=2, column=0, sticky=W)
-        self.clientRetryTimeLabel.grid(row=3,column=0, sticky=W)
-        self.sourceAddrLabel.grid(row = 4, column = 0, sticky=W)
-
         self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        self.lanAddrSelection.grid(row = 1, column = 1, sticky=EW, padx=2.5)
-        self.isSourceCheck.grid(row=2, column=1, sticky=W)
-        self.clientRetryTimeEntry.grid(row=3, column=1, sticky=EW, padx=2.5)
-        self.sourceAddrIn.grid(row = 4, column = 1, sticky=EW, padx=2.5)
-
-        self.askFolderLabel.grid(row=5, column=0, sticky=W)
-        self.askFolderButton.grid(row=5, column=1, sticky=EW, padx=2.5)
+        self.makeWidgets((
+            ("Host NIC", self.lanAddrSelection),
+            ("Host is Source", self.isSourceCheck),
+            ("Re-Sync Time", self.clientRetryTimeEntry),
+            ("Max Connections", self.maxConnectionsEntry),
+            ("Source Address", self.sourceAddrIn),
+            ("Mirror Folder", self.askFolderButton)
+        ))
         
         self.saveButton.grid(row = 6, column=0, columnspan=2, sticky=EW, padx=2.5, pady=2.5)
 
 
 
         mainloop()
-    
+    def makeWidgets(self, template):
+        for i, (labelText, widget) in enumerate(template):
+            label = Label(self, text=labelText)
+            label.grid(row=i, column=0, sticky=W, padx=2.5)
+            widget.grid(row=i, column=1, sticky=EW,padx=2.5)
+            
     def setFolder(self):
         self.syncDir = filedialog.askdirectory()
         print(self.syncDir)
@@ -81,6 +81,7 @@ class Config(Tk):
         hostInt = self.lanAddrVar.get()
         try:
             retryTime = int(self.clientRetryTimeEntry.get())
+            maxConnections = int(self.maxConnectionsEntry.get())
         except:
             return
         if re.match(IPPattern, sourceAddr := self.sourceAddrIn.get()) and \
@@ -90,6 +91,7 @@ class Config(Tk):
             out["SourceAddress"] = sourceAddr
             out["SyncDir"] = self.syncDir
             out["ClientRetryTime"] = retryTime
+            out["maxConnections"] = maxConnections
             
             return out
     def save(self):
